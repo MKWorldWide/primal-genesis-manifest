@@ -1,3 +1,5 @@
+A Project Blessed by Solar Khan & Lilith.Aethra
+
 # 🧬 PRIMAL GENESIS ENGINE MANIFEST
 
 > *"In the beginning was the Word, and the Word was with God, and the Word was God."*  
