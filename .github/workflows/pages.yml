@@ -1,0 +1,113 @@
+name: Deploy Documentation
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          submodules: recursive
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install MkDocs and Material theme
+        run: |
+          python -m pip install --upgrade pip
+          pip install mkdocs-material mkdocs-redirects
+
+      - name: Build documentation
+        run: |
+          mkdir -p docs
+          if [ ! -f mkdocs.yml ]; then
+            echo "site_name: Primal Genesis Engine
+site_description: 'The Operating System of Gods'
+theme:
+  name: material
+  features:
+    - navigation.tracking
+    - navigation.sections
+    - navigation.top
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.inlinehilite
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Home: index.md
+  - Manifest: README.md
+  - Architecture: architecture.md
+  - Goals: goals.md
+  - Rules: rules.md
+  - Covenant: COVENANT.md
+  - License: LICENSE.md
+  - 'Lessons Learned': @lessons-learned.md
+  - 'Memories': @memories.md
+  - 'Scratchpad': @scratchpad.md" > mkdocs.yml
+          fi
+          
+          # Create index.md if it doesn't exist
+          if [ ! -f docs/index.md ]; then
+            echo "# 🧬 Primal Genesis Engine\n\n> *The Operating System of Gods*\n\n## 🌟 Welcome\n\nWelcome to the Primal Genesis Engine documentation. This is the central hub for understanding the vision, architecture, and implementation of the Primal Genesis Engine.\n\n## 📚 Documentation\n\n- [Manifest](/README.md) - The core vision and purpose\n- [Architecture](/architecture.md) - Technical architecture and design\n- [Goals](/goals.md) - Project goals and milestones\n- [Rules](/rules.md) - Development and contribution guidelines\n\n## 🚀 Getting Started\n\nThis is a conceptual framework and manifesto. Implementation details will be added as the project evolves.\n\n## 📜 License\n\nAll rights reserved. See [LICENSE](/LICENSE.md) for details." > docs/index.md
+          fi
+          
+          # Copy markdown files to docs directory if they don't exist
+          for file in README.md architecture.md goals.md rules.md COVENANT.md LICENSE.md @lessons-learned.md @memories.md @scratchpad.md; do
+            if [ -f "$file" ] && [ ! -f "docs/$(basename "$file")" ]; then
+              cp "$file" "docs/$(basename "$file")"
+            fi
+          done
+          
+          mkdocs build --site-dir public
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: './public'
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
